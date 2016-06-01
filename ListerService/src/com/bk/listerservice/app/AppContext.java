@@ -6,6 +6,8 @@ import java.util.HashMap;
 import android.app.Application;
 import android.bluetooth.BluetoothGatt;
 
+import com.baidu.batsdk.BatSDK;
+import com.bk.listerservice.bean.NotificationBean;
 import com.bk.listerservice.blue.BluetoothLeService;
 
 public class AppContext extends Application {
@@ -18,6 +20,7 @@ public class AppContext extends Application {
 	
 	public static  boolean isAlarm = true ;
 	
+	public static NotificationBean mNotificationBean = new NotificationBean();
 	
 	public static boolean isShow = true ;
 	
@@ -43,8 +46,15 @@ public class AppContext extends Application {
 	
 	public static boolean isFlash = true;
 	
+	public static boolean isBlueDisconnect = false ;
+	
 	@Override
 	public void onCreate() {
+		
+		BatSDK.init(this, "cc280be87a7bebd8");
+		BatSDK.setCollectScreenshot(true);
+		BatSDK.setSendPrivacyInformation(true) ;
+		
 		super.onCreate();
 	}
 

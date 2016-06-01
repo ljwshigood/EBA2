@@ -2,6 +2,8 @@
 <resources>
 
     <string name="app_name">EBA2</string>
+    <string name="already_connect">Currently connected to the device, determine the disconnect?</string>
+    <string name="tip">Tip</string>
     <string name="device_connected_title">connecting blue device</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
@@ -17,8 +19,11 @@
     <string name="unknown_device">Unknown device</string>
     <string name="ble_not_supported">BLE is not supported</string>
     <string name="ok">OK</string>
+     <string name="scan">scanning</string>
     <string name="scanner">Scanning</string>
     <string name="long_key">SWITCH\n...\nLONG</string>
+    <string name="ble_dis_connected">Blue device is disconnected</string>
+     <string name="disconnect">Disconnect\n...\n</string>
     <string name="short_key">SWITCH\n...\nSHORT</string>
     <string name="error_bluetooth_not_supported">Bluetooth not supported.</string>
 

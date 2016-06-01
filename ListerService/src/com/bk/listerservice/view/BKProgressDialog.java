@@ -8,7 +8,7 @@ import android.widget.TextView;
 
 import com.bk.listerservice.R;
 
-public class ProgressDialog extends Dialog{
+public class BKProgressDialog extends Dialog{
 
 	private Context mContext ;
 	
@@ -21,16 +21,16 @@ public class ProgressDialog extends Dialog{
 		mTvContent.setText(content);
 	}
 	
-	public ProgressDialog(Context context) {
+	public BKProgressDialog(Context context) {
 		super(context);
 	}
 
-	public ProgressDialog(Context context, boolean cancelable,
+	public BKProgressDialog(Context context, boolean cancelable,
 			OnCancelListener cancelListener) {
 		super(context, cancelable, cancelListener);
 	}
 
-	public ProgressDialog(Context context, int theme,String content) {
+	public BKProgressDialog(Context context, int theme,String content) {
 		super(context, theme);
 		this.mContext = context ;
 		this.content = content ;

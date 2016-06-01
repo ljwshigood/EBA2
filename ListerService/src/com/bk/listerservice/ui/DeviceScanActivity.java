@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -35,7 +36,6 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -54,9 +54,10 @@ import com.bk.listerservice.R;
 import com.bk.listerservice.app.AppContext;
 import com.bk.listerservice.blue.BluetoothLeService;
 import com.bk.listerservice.impl.IDismissListener;
-import com.bk.listerservice.view.ProgressDialog;
+import com.bk.listerservice.utils.SharePerfenceUtil;
+import com.bk.listerservice.view.BKProgressDialog;
 
-public class DeviceScanActivity extends Activity implements OnClickListener ,IDismissListener{
+public class DeviceScanActivity extends BaseActivity implements OnClickListener ,IDismissListener{
 
 	private LeDeviceListAdapter mLeDeviceListAdapter;
 	private BluetoothAdapter mBluetoothAdapter;
@@ -77,21 +78,22 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 		public void onReceive(Context context, Intent intent) {
 			final String action = intent.getAction();
 			if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
-				String address = intent.getStringExtra(BluetoothDevice.EXTRA_DEVICE);
+				BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
 				
 				if (mDialogProgress != null) {
 					mDialogProgress.dismiss();
 				}
 				
+				SharePerfenceUtil.setParam(mContext, "device_address", device.getAddress()) ;
+				
 				if (AppContext.mBluetoothLeService != null) {
-					displayGattServices(AppContext.mBluetoothLeService.getSupportedGattServices(),address);
+					displayGattServices(AppContext.mBluetoothLeService.getSupportedGattServices(),device.getAddress());
 				}
 			}
 		}
 	};
 
-	private void displayGattServices(List<BluetoothGattService> gattServices,
-			String address) {
+	private void displayGattServices(List<BluetoothGattService> gattServices,String address) {
 		if (gattServices == null)
 			return;
 		for (BluetoothGattService gattService : gattServices) {
@@ -100,11 +102,12 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 				for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
 					if (gattCharacteristic.getUuid().toString().startsWith("0000ffe2")) {
 						AppContext.mBluetoothLeService.setCharacteristicNotification(gattCharacteristic, true);
-					//	saveDatabaseAndStartActivity();
+						//saveDatabaseAndStartActivity();
 					}
 				}
 			}
 		}
+		
 		finish() ; 
 	}
 
@@ -150,6 +153,8 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 		}
 		
 		setTitle(mContext.getString(R.string.scanner));
+		
+		registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
 	}
 
 	private TextView mTvTitleInfo;
@@ -159,9 +164,13 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 		mTvTitleInfo.setText(info);
 	}
 
+	private TextView mTvScan ;
+	
 	private void initView() {
+		mTvScan = (TextView)findViewById(R.id.tv_scan) ;
 		mIvBack = (ImageView) findViewById(R.id.iv_back);
 		mIvBack.setOnClickListener(this);
+		mTvScan.setOnClickListener(this) ;
 	}
 
 	@Override
@@ -184,7 +193,6 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 				startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
 			}
 		}
-		registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
 		scanLeDevice(true);
 	}
 	
@@ -197,6 +205,8 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 			mDialogProgress.dismiss();
 			mDialogProgress = null;
 		}
+		unregisterReceiver(mGattUpdateReceiver);
+		
 		super.onDestroy();
 	}
 
@@ -214,26 +224,39 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 	protected void onPause() {
 		super.onPause();
 		scanLeDevice(false);
-		unregisterReceiver(mGattUpdateReceiver);
-		
 	}
-
+	
+	private ProgressDialog dialog;
+	
+	private Handler mDialogHandler = new Handler(){
+		public void handleMessage(android.os.Message msg) {
+			if(dialog != null){
+				dialog.dismiss() ;
+				dialog = null ;	
+			}
+		
+		};
+	};
+	
 	/**
 	 * @param enable
 	 */
 	private void scanLeDevice(final boolean enable) {
 		if (enable) {
-			/*mHandler.postDelayed(new Runnable() {
+			
+			
+			mHandler.postDelayed(new Runnable() {
 				@Override
 				public void run() {
 					mScanning = false;
 					mBluetoothAdapter.stopLeScan(mLeScanCallback);
 				}
-			}, SCAN_PERIOD);*/
+			}, SCAN_PERIOD);
 
 			mScanning = true;
 			mBluetoothAdapter.startLeScan(mLeScanCallback);
 		} else {
+		
 			mScanning = false;
 			mBluetoothAdapter.stopLeScan(mLeScanCallback);
 		}
@@ -247,6 +270,7 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 
 		public LeDeviceListAdapter() {
 			super();
+			
 			mLeDevices = new ArrayList<BluetoothDevice>();
 			mInflator = DeviceScanActivity.this.getLayoutInflater();
 		}
@@ -313,11 +337,11 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 		}
 	}
 
-	public ProgressDialog mDialogProgress = null;
+	public BKProgressDialog mDialogProgress = null;
 
 	private void showProgressBarDialog() {
 		String info = mContext.getString(R.string.device_connected_title);
-		mDialogProgress = new ProgressDialog(mContext, R.style.MyDialog,info);
+		mDialogProgress = new BKProgressDialog(mContext, R.style.MyDialog,info);
 		mDialogProgress.show();
 	}
 
@@ -330,8 +354,11 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 			runOnUiThread(new Runnable() {
 				@Override
 				public void run() {
-					mLeDeviceListAdapter.addDevice(device);
-					mLeDeviceListAdapter.notifyDataSetChanged();	
+					//if(device.getName().equalsIgnoreCase("CSR ANCS")){
+						mLeDeviceListAdapter.addDevice(device);
+						mLeDeviceListAdapter.notifyDataSetChanged();	
+					//}
+					
 				}
 			});
 		}
@@ -363,6 +390,9 @@ public class DeviceScanActivity extends Activity implements OnClickListener ,IDi
 		case R.id.iv_back:
 			finish();
 			break;
+		case R.id.tv_scan:
+			scanLeDevice(true);
+			break ;
 		default:
 			break;
 		}
